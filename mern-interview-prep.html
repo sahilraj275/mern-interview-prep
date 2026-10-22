@@ -142,7 +142,8 @@ pre.code .k{color:#FF8FB0} pre.code .s{color:#A9E58C} pre.code .c{color:#7E86A8;
 /* edit mode */
 body.editing [data-ek]{outline:1.5px dashed color-mix(in srgb,var(--warn) 70%,transparent);outline-offset:4px;border-radius:6px;cursor:text}
 body.editing [data-ek]:focus{outline:2px solid var(--warn);background:var(--warn-soft)}
-[data-ek].edited{box-shadow:inset 3px 0 0 var(--warn)}
+/* changed blocks are only marked while editing; reading view stays clean */
+body.editing [data-ek].edited:not(:focus){background:color-mix(in srgb,var(--acc-soft) 75%,transparent);outline-color:color-mix(in srgb,var(--acc) 55%,transparent)}
 .editbanner{display:none;position:sticky;top:var(--barh);z-index:20;background:var(--warn-soft);color:var(--ink);border-bottom:1px solid color-mix(in srgb,var(--warn) 40%,transparent);padding:9px 20px;font-size:14.5px}
 body.editing .editbanner{display:block}
 
