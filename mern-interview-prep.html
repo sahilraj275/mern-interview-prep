@@ -392,9 +392,25 @@ html.modal-open{overflow:hidden}
 .mk-kick{font:700 12px/1 var(--font);letter-spacing:.09em;text-transform:uppercase;color:var(--acc);margin:0 0 12px}
 .mk-h{font:400 clamp(28px,4vw,38px)/1.1 var(--disp);letter-spacing:-.01em;margin:0}
 .mk-p{color:var(--ink2);margin:14px 0 0;max-width:60ch}
-.mk-mix{list-style:none;padding:0;margin:20px 0 0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-.mk-mix li{background:var(--sunk);border-radius:14px;padding:14px;font-size:13.5px;color:var(--muted);line-height:1.35}
-.mk-mix b{display:block;font:400 32px/1 var(--disp);color:var(--ink);margin-bottom:6px}
+.mk-row{display:flex;align-items:center;flex-wrap:wrap;gap:6px 14px;margin:22px 0 10px}
+.mk-lab{font:700 12px/1 var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-right:auto}
+.lnk{border:0;background:none;padding:6px 4px;font:600 13.5px var(--font);color:var(--acc);cursor:pointer;border-radius:6px}
+.lnk:hover{text-decoration:underline;text-underline-offset:3px}
+.mk-secs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.mk-sec{display:grid;grid-template-columns:auto 26px minmax(0,1fr) auto;align-items:center;gap:10px;min-height:46px;padding:8px 12px;border-radius:12px;background:var(--sunk);box-shadow:inset 0 0 0 1px var(--line2);cursor:pointer;font-size:14.5px;line-height:1.3;color:var(--ink2);transition:background .15s,box-shadow .15s,color .15s}
+.mk-sec:hover{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--acc) 50%,var(--line2))}
+.mk-sec:has(input:checked){background:color-mix(in srgb,var(--acc) 12%,var(--surface));box-shadow:inset 0 0 0 1.5px var(--acc);color:var(--ink)}
+.mk-sec input{width:17px;height:17px;margin:0;accent-color:var(--acc);cursor:pointer}
+.mk-sec .n{font:400 19px/1 var(--disp);color:var(--muted)}
+.mk-sec:has(input:checked) .n{color:var(--acc)}
+.mk-sec .c{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.seg{display:inline-flex;padding:3px;border-radius:999px;background:var(--sunk);box-shadow:inset 0 0 0 1px var(--line2)}
+.seg label{position:relative;cursor:pointer}
+.seg input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.seg span{display:block;min-width:46px;padding:8px 14px;border-radius:999px;text-align:center;font:600 14px/1 var(--font);color:var(--ink2);transition:background .15s,color .15s}
+.seg input:checked + span{background:var(--acc);color:var(--surface)}
+.seg input:focus-visible + span{outline:2.5px solid var(--acc);outline-offset:2px}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
 .mk-tip{color:var(--muted);font-size:14.5px;margin:16px 0 0}
 .mk-meta{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px;font-size:13.5px;color:var(--muted)}
 .mk-lb{font:600 13px/1 var(--font);color:var(--acc);background:var(--acc-soft);padding:6px 10px;border-radius:999px}
@@ -432,7 +448,8 @@ html.modal-open{overflow:hidden}
   .mk-main{padding:20px 18px 14px}
   .mk-head{padding-left:18px}
   .mk-foot{padding:12px 14px}
-  .mk-mix,.mk-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .mk-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .mk-secs{grid-template-columns:1fr}
   .mk-qrow{flex-direction:column-reverse;gap:14px}
   .mk-timer{width:60px;height:60px}
   .mk-foot .lbl{flex-basis:100%}
@@ -2137,24 +2154,43 @@ function setPractice(on) {
   try { localStorage.setItem('mern-prep-practice', on ? '1' : '0'); } catch (e) {}
 }
 
-/* mock interview: 10 questions mixed like a real round, 90 s each */
-const MOCK_POOLS = [{ n: 1, secs: ['02'] }, { n: 4, secs: ['03', '04', '05', '06'] }, { n: 4, secs: ['07', '08', '09', '10', '11', '12', '13', '14'] }, { n: 1, secs: ['15', '16'] }];
-const MOCK_SECS = 90, RING_C = 163.36;
+/* mock interview: questions drawn only from the sections you pick; with every section on, it is mixed like a real round */
+const MOCK_POOLS = [{ secs: ['02'] }, { secs: ['03', '04', '05', '06'] }, { secs: ['07', '08', '09', '10', '11', '12', '13', '14'] }, { secs: ['15', '16'] }];
+const MOCK_MIX = { 5: [1, 2, 1, 1], 10: [1, 4, 4, 1], 15: [2, 6, 5, 2] }; // HR, projects, core tech, scenario/coding
+const MOCK_SECS = 90, RING_C = 163.36, MOCK_PREF_KEY = 'mern-prep-mock-v1';
 const MOCK = { state: 'intro', list: [], i: 0, res: [], revealed: false, timer: 0, t0: 0, used: 0 };
+let MOCK_PREF = { secs: null, n: 10 }; try { Object.assign(MOCK_PREF, JSON.parse(localStorage.getItem(MOCK_PREF_KEY) || '{}')); } catch (e) {}
+if (!MOCK_MIX[MOCK_PREF.n]) MOCK_PREF.n = 10;
+if (MOCK_PREF.secs && !Array.isArray(MOCK_PREF.secs)) MOCK_PREF.secs = null;
 const mmss = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
-function pickMock() {
-  const all = [...document.querySelectorAll('article.q[data-qk]')], out = [];
-  MOCK_POOLS.forEach(p => {
-    const c = all.filter(a => p.secs.includes(a.dataset.sec));
-    for (let i = 0; i < p.n && c.length; i++) {
-      const w = c.map(a => MARKS[a.dataset.qk] === 'k' ? 1 : 3); // not-yet-known questions come up 3x as often
-      let r = Math.random() * w.reduce((x, y) => x + y, 0), j = 0;
-      while (j < c.length - 1 && (r -= w[j]) > 0) j++;
-      out.push(c.splice(j, 1)[0]);
-    }
-  });
+const mockSections = () => window.DATA.map(s => ({ num: s.num, title: s.title.replace(/ questions$/i, ''), n: document.querySelectorAll(`article.q[data-qk][data-sec="${s.num}"]`).length })).filter(s => s.n);
+function mockChosen() { const ok = mockSections().map(s => s.num); return MOCK_PREF.secs ? MOCK_PREF.secs.filter(s => ok.includes(s)) : ok; }
+function mockAllOn() { return mockChosen().length === mockSections().length; }
+function drawWeighted(c, k) {
+  const out = [];
+  for (let i = 0; i < k && c.length; i++) {
+    const w = c.map(a => MARKS[a.dataset.qk] === 'k' ? 1 : 3); // not-yet-known questions come up 3x as often
+    let r = Math.random() * w.reduce((x, y) => x + y, 0), j = 0;
+    while (j < c.length - 1 && (r -= w[j]) > 0) j++;
+    out.push(c.splice(j, 1)[0]);
+  }
   return out;
 }
+function pickMock() {
+  const all = [...document.querySelectorAll('article.q[data-qk]')], n = MOCK_PREF.n;
+  if (mockAllOn()) return MOCK_POOLS.flatMap((p, i) => drawWeighted(all.filter(a => p.secs.includes(a.dataset.sec)), MOCK_MIX[n][i]));
+  const secs = mockChosen();
+  return drawWeighted(all.filter(a => secs.includes(a.dataset.sec)), n).sort((a, b) => all.indexOf(a) - all.indexOf(b));
+}
+function mockSummary() {
+  const secs = mockChosen(), avail = mockSections().filter(s => secs.includes(s.num)).reduce((t, s) => t + s.n, 0);
+  const n = Math.min(MOCK_PREF.n, avail), sum = $('#mkSum'), go = $('#mkFoot [data-mk="start"]');
+  if (!secs.length) sum.textContent = 'Pick at least one section';
+  else if (mockAllOn()) sum.textContent = `${n} questions · real-round mix`;
+  else sum.textContent = `${n} questions from ${secs.length === 1 ? '1 section' : `${secs.length} sections`}${n < MOCK_PREF.n ? ` (only ${avail} there)` : ''}`;
+  if (go) go.disabled = !secs.length;
+}
+function saveMockPref() { try { localStorage.setItem(MOCK_PREF_KEY, JSON.stringify(MOCK_PREF)); } catch (e) {} }
 function mockStopTimer() { clearInterval(MOCK.timer); MOCK.timer = 0; }
 function mockDots() {
   $('#mkDots').innerHTML = MOCK.state === 'intro' ? '' : MOCK.list.map((_, i) => `<i class="${MOCK.res[i] ? MOCK.res[i].m : i === MOCK.i && MOCK.state === 'q' ? 'cur' : ''}"></i>`).join('');
@@ -2165,12 +2201,15 @@ function mockView(main, foot, step) {
 }
 function mockIntro() {
   MOCK.state = 'intro'; mockStopTimer();
-  mockView(`<div><p class="mk-kick">Mock interview</p><h2 class="mk-h" id="mockTitle">10 questions, 90 seconds each</h2>
-    <p class="mk-p">Mixed like a real technical round. Answer each one out loud as if the interviewer just asked, then check the answer and mark how it went.</p>
-    <ul class="mk-mix"><li><b>1</b>HR and self intro</li><li><b>4</b>Your projects</li><li><b>4</b>Core tech</li><li><b>1</b>Scenario or live coding</li></ul>
-    <p class="mk-tip">Questions you haven’t marked Known come up three times as often. Your marks save as you go.</p></div>`,
-    `<button type="button" class="btn ghost" data-mk="close">Not now</button><button type="button" class="btn pri" data-mk="start">Start interview<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>`, 'Mock interview');
-  $('#mkFoot [data-mk="start"]').focus();
+  const chosen = mockChosen();
+  mockView(`<div><p class="mk-kick">Mock interview</p><h2 class="mk-h" id="mockTitle">Pick what to practise</h2>
+    <p class="mk-p">Questions come only from the sections you tick. Answer each one out loud as if the interviewer just asked, then check the answer and mark how it went.</p>
+    <div class="mk-row"><span class="mk-lab">Sections</span><button type="button" class="lnk" data-mk="all">Select all</button><button type="button" class="lnk" data-mk="none">Clear</button></div>
+    <div class="mk-secs" role="group" aria-label="Sections to include">${mockSections().map(s => `<label class="mk-sec"><input type="checkbox" value="${s.num}"${chosen.includes(s.num) ? ' checked' : ''}><span class="n">${s.num}</span><span class="t">${esc(s.title)}</span><span class="c">${s.n}</span></label>`).join('')}</div>
+    <div class="mk-row"><span class="mk-lab">Questions</span><div class="seg" role="radiogroup" aria-label="Number of questions">${[5, 10, 15].map(n => `<label><input type="radio" name="mkn" value="${n}"${MOCK_PREF.n === n ? ' checked' : ''}><span>${n}</span></label>`).join('')}</div></div>
+    <p class="mk-tip">With every section ticked you get a real-round mix: HR first, then your projects, core tech, and a scenario or coding question. Questions you haven’t marked Known come up three times as often. ${MOCK_SECS} seconds each.</p></div>`,
+    `<span class="lbl" id="mkSum" aria-live="polite"></span><button type="button" class="btn ghost" data-mk="close">Not now</button><button type="button" class="btn pri" data-mk="start">Start interview<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>`, 'Mock interview');
+  mockSummary();
 }
 function mockQuestion() {
   MOCK.state = 'q'; MOCK.revealed = false;
@@ -2228,7 +2267,7 @@ function mockDone() {
   mockView(`<div><p class="mk-kick">Interview done</p><h2 class="mk-h" id="mockTitle">${c.k} of ${MOCK.list.length} known</h2>
     <p class="mk-p">You took ${mmss(time)} in total, about ${mmss(time / MOCK.list.length)} per question.</p>
     <div class="mk-stats"><div class="k">${c.k}<small>Known</small></div><div class="s">${c.s}<small>Shaky</small></div><div class="n">${c.n}<small>Not yet</small></div><div>${c.skip}<small>Skipped</small></div></div>${list}</div>`,
-    `<button type="button" class="btn ghost" data-mk="close">Close</button><button type="button" class="btn pri" data-mk="start">New mock interview</button>`, 'Mock interview');
+    `<button type="button" class="btn ghost" data-mk="close">Close</button><button type="button" class="btn ghost" data-mk="setup">Change sections</button><button type="button" class="btn pri" data-mk="start">New mock interview</button>`, 'Mock interview');
   $('#mkFoot [data-mk="start"]').focus();
 }
 function setupMock() {
@@ -2244,9 +2283,17 @@ function setupMock() {
     if (!b) return;
     const k = b.dataset.mk;
     if (k === 'close') d.close();
-    else if (k === 'start') { MOCK.list = pickMock(); MOCK.i = 0; MOCK.res = []; mockQuestion(); }
+    else if (k === 'setup') mockIntro();
+    else if (k === 'all' || k === 'none') { MOCK_PREF.secs = k === 'all' ? null : []; saveMockPref(); d.querySelectorAll('.mk-secs input').forEach(i => { i.checked = k === 'all'; }); mockSummary(); }
+    else if (k === 'start') { if (!mockChosen().length) return; MOCK.list = pickMock(); MOCK.i = 0; MOCK.res = []; mockQuestion(); }
     else if (k === 'reveal') mockReveal();
     else if (k === 'skip') mockNext('');
+  });
+  d.addEventListener('change', e => {
+    if (e.target.closest('.mk-secs')) { const on = [...d.querySelectorAll('.mk-secs input:checked')].map(i => i.value); MOCK_PREF.secs = on.length === mockSections().length ? null : on; }
+    else if (e.target.name === 'mkn') MOCK_PREF.n = +e.target.value;
+    else return;
+    saveMockPref(); mockSummary();
   });
   d.addEventListener('keydown', e => {
     if (MOCK.state !== 'q' || e.ctrlKey || e.metaKey || e.altKey || e.target.closest('input,select,textarea')) return;
