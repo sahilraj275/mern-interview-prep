@@ -442,6 +442,84 @@ html.modal-open{overflow:hidden}
 .mk-list .mk-lb{flex:none}
 .tag{--c:var(--muted);flex:none;margin-left:auto;font:600 12px/1 var(--font);padding:5px 9px;border-radius:999px;color:var(--c);background:color-mix(in srgb,var(--c) 15%,transparent)}
 .tag.s{--c:var(--warn)} .tag.n{--c:var(--err)}
+/* "Today" panel */
+.today{margin-top:26px;background:var(--surface);border-radius:28px;padding:clamp(22px,3.4vw,40px);box-shadow:0 0 0 1px var(--line2)}
+.td-head{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 16px;margin-bottom:20px}
+.td-kick{flex-basis:100%;margin:0;font:700 12px/1 var(--font);letter-spacing:.09em;text-transform:uppercase;color:var(--acc)}
+.td-head h2{font:400 clamp(32px,4vw,44px)/1 var(--disp);margin:8px 0 0}
+.td-date{color:var(--muted);font-size:15px}
+.td-grid{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.3fr) minmax(0,1fr);gap:14px}
+@media (max-width:1180px){.td-grid{grid-template-columns:1fr 1fr}.td-count{grid-column:1/-1}}
+@media (max-width:640px){.td-grid{grid-template-columns:1fr}}
+.td-card{background:var(--sunk);border-radius:18px;padding:18px;box-shadow:inset 0 0 0 1px var(--line2);min-width:0}
+.td-count{background:linear-gradient(160deg,color-mix(in srgb,var(--acc) 16%,var(--surface)),color-mix(in srgb,var(--acc) 5%,var(--surface)));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--acc) 35%,var(--line2))}
+.td-big{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.td-big span{font:400 64px/.9 var(--disp);color:var(--acc);font-variant-numeric:tabular-nums}
+.td-big small{font-size:15px;color:var(--ink2);font-weight:600;line-height:1.3}
+.td-in{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 10px;margin-top:16px;font-size:13.5px;color:var(--muted)}
+.td-in input{font:500 14px var(--font);color:var(--ink);background:var(--surface);border:0;box-shadow:inset 0 0 0 1px var(--line);border-radius:10px;padding:7px 10px;min-height:38px}
+.td-in input:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+.td-goal{margin:14px 0 0;font-size:14.5px;color:var(--ink2);line-height:1.5}
+.td-goal:empty{display:none}
+.td-goal b{color:var(--ink)}
+.td-t{display:flex;align-items:center;gap:8px;font:700 12px/1 var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.td-n{font:600 11.5px/1 var(--font);letter-spacing:0;padding:3px 7px;border-radius:999px;background:color-mix(in srgb,var(--acc) 15%,transparent);color:var(--acc)}
+.td-n:empty{display:none}
+.td-list{list-style:none;margin:0;padding:0}
+.td-list li+li{border-top:1px solid var(--line2)}
+.td-list a{display:flex;gap:10px;align-items:baseline;padding:8px 2px;color:var(--ink);text-decoration:none;font-size:14.5px;line-height:1.4}
+.td-list a:hover{color:var(--acc)}
+.dot{flex:none;width:9px;height:9px;border-radius:50%;background:var(--muted);transform:translateY(-1px)}
+.dot.s{background:var(--warn)} .dot.n{background:var(--err)}
+.td-empty{font-size:14px;color:var(--muted);line-height:1.5;margin:0;padding:2px 0}
+.td-acts{margin-top:12px}
+.btn.sm{min-height:36px;padding:0 14px;font-size:13.5px}
+.td-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+.td-stats div{background:var(--surface);border-radius:14px;padding:12px 14px;box-shadow:inset 0 0 0 1px var(--line2)}
+.td-stats b{display:block;font:400 34px/1 var(--disp);color:var(--ink);font-variant-numeric:tabular-nums}
+.td-stats small{display:block;font-size:12.5px;color:var(--muted);margin-top:5px}
+.td-chips{display:flex;flex-wrap:wrap;gap:6px}
+.td-chip{display:inline-flex;align-items:baseline;gap:6px;padding:6px 11px;border-radius:999px;background:var(--surface);box-shadow:inset 0 0 0 1px var(--line);color:var(--ink2);text-decoration:none;font-size:13px;line-height:1.2;transition:box-shadow .15s,color .15s}
+.td-chip span{font:400 15px/1 var(--disp);color:var(--acc)}
+.td-chip:hover{color:var(--ink);box-shadow:inset 0 0 0 1px var(--acc)}
+.td-more{font-size:13px;color:var(--muted);align-self:center;padding:0 4px}
+
+/* print menu */
+.pmenu{position:fixed;z-index:50;width:min(300px,calc(100vw - 24px));padding:6px;border-radius:16px;background:var(--surface);box-shadow:0 0 0 1px var(--line2),0 20px 50px -18px rgba(0,0,0,.45);animation:mkPop .18s cubic-bezier(.16,1,.3,1)}
+.pmenu[hidden]{display:none}
+.pmenu button{display:block;width:100%;text-align:left;border:0;background:transparent;border-radius:11px;padding:10px 12px;cursor:pointer;color:var(--ink)}
+.pmenu button:hover:not(:disabled),.pmenu button:focus-visible{background:var(--sunk);outline:none}
+.pmenu button:focus-visible{box-shadow:inset 0 0 0 2px var(--acc)}
+.pmenu button:disabled{opacity:.5;cursor:not-allowed}
+.pmenu b{display:block;font:650 14.5px/1.3 var(--font)}
+.pmenu small{display:block;font-size:12.5px;color:var(--muted);margin-top:2px;line-height:1.35}
+.print-head{display:none}
+
+/* study sheet print: questions + Quick recall only, compact */
+@media print{
+  .today,.pmenu{display:none!important}
+  body.print-sheet{font-size:9.5pt}
+  body.print-sheet .print-head{display:block;font-size:8.5pt;color:#444;border-bottom:1.5pt solid #000;padding-bottom:4pt;margin-bottom:6pt}
+  body.print-sheet .print-head b{color:#000;font-size:11pt}
+  body.print-sheet :is(.hero,.lede,.intro,article.q.h,.qbody,.note,.anim-slot,.qact,.qhide){display:none!important}
+  body.print-sheet section.sec{break-before:auto;margin:0;padding:0}
+  body.print-sheet .sec-head{margin:9pt 0 0;padding-bottom:2pt;border-bottom:.75pt solid #888;break-after:avoid}
+  body.print-sheet .sec-head .num,body.print-sheet .sec-head h2{font-size:14pt;line-height:1.1;color:#000}
+  body.print-sheet article.q,body.print-sheet article.q + article.q{padding:4pt 0 3pt;margin:0;border-top:.5pt solid #ddd;break-inside:avoid}
+  body.print-sheet .q-h{flex-direction:row;gap:6pt}
+  body.print-sheet .q-h .lb{font-size:7.5pt;padding:1.5pt 4pt;min-width:0;top:0;background:none!important;box-shadow:inset 0 0 0 .5pt #888!important;color:#000!important}
+  body.print-sheet .q-h h3{font-size:10pt;line-height:1.3;max-width:none}
+  body.print-sheet .qgrid,body.print-sheet .qgrid.has-mm{display:block!important;margin:1.5pt 0 0 0!important}
+  body.print-sheet .mm{margin:0;padding:0;background:none!important;border:0;box-shadow:none!important;max-width:none;overflow:visible}
+  body.print-sheet .mm::before,body.print-sheet .mm-h,body.print-sheet .mm .ic{display:none!important}
+  body.print-sheet .mm ol{columns:2;column-gap:14pt}
+  body.print-sheet .mm li{display:block;break-inside:avoid;padding:.5pt 0;border:0;font-size:8.5pt;line-height:1.35}
+  body.print-sheet .mm b{display:inline;font:700 8.5pt/1.35 var(--font);padding:0;color:#000}
+  body.print-sheet .mm b::after{content:" \2014 ";font-weight:400}
+  body.print-sheet .mm small{display:inline;font-size:8.5pt;color:#333;margin:0}
+  body.print-weak article.q[data-qk]:not([data-mark="s"]):not([data-mark="n"]){display:none!important}
+  body.print-weak section.sec:not(:has(article.q[data-mark="s"],article.q[data-mark="n"])){display:none!important}
+}
 @keyframes mkIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @keyframes mkPop{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
 @media (max-width:560px){
@@ -477,7 +555,12 @@ html.modal-open{overflow:hidden}
   <button class="tbtn hide" id="pubBtn" title="Save your edits into this page for good"><svg viewBox="0 0 16 16"><path d="M3 3h8l2 2v8H3zM5 3v4h5V3M5 13v-3h6v3" stroke="currentColor" stroke-width="1.4" fill="none"></path></svg><span class="lbtxt">Save into page</span></button>
   <button class="tbtn hide" id="dlBtn" title="Download this page with your edits"><svg viewBox="0 0 16 16"><path d="M8 2v8M4.5 6.5L8 10l3.5-3.5M3 13h10" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"></path></svg><span class="lbtxt">Download HTML</span></button>
   <button class="tbtn hide" id="linkBtn" title="Link this file so your edits save straight into it"><svg viewBox="0 0 16 16"><path d="M6.5 9.5l3-3M7 4.5l1.2-1.2a2.6 2.6 0 0 1 3.7 3.7L10.7 8.2M9 11.5l-1.2 1.2a2.6 2.6 0 0 1-3.7-3.7L5.3 7.8" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"></path></svg><span class="lbtxt">Link file</span></button>
-  <button class="tbtn" id="printBtn" title="Print or save as PDF"><svg viewBox="0 0 16 16"><path d="M4 6V2h8v4M4 11H2.5V6h11v5H12M4 9h8v5H4z" stroke="currentColor" stroke-width="1.4" fill="none"></path></svg><span class="lbtxt">Print / PDF</span></button>
+  <div class="pmenu" id="printMenu" role="menu" aria-label="What to print" hidden>
+    <button type="button" role="menuitem" data-print="full"><b>Full guide</b><small>Every answer, code block and table</small></button>
+    <button type="button" role="menuitem" data-print="sheet"><b>Study sheet</b><small>Questions and Quick recall only, for last-minute revision</small></button>
+    <button type="button" role="menuitem" data-print="weak"><b>Weak spots sheet</b><small id="pmWeak">Only questions marked Shaky or Not yet</small></button>
+  </div>
+  <button class="tbtn" id="printBtn" title="Print or save as PDF" aria-haspopup="menu" aria-expanded="false" aria-controls="printMenu"><svg viewBox="0 0 16 16"><path d="M4 6V2h8v4M4 11H2.5V6h11v5H12M4 9h8v5H4z" stroke="currentColor" stroke-width="1.4" fill="none"></path></svg><span class="lbtxt">Print / PDF</span></button>
   <button class="tbtn" id="themeBtn" aria-label="Switch light or dark"><svg viewBox="0 0 16 16"><path d="M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2v12" stroke="currentColor" stroke-width="1.5" fill="currentColor" fill-opacity=".0"></path><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"></path></svg></button>
 </header>
 <div class="pbanner" data-keep="body"><b>Practice mode.</b> Answers are hidden. Read the question, say your answer out loud, then click <b>Reveal answer</b> and mark how it went.</div>
@@ -490,7 +573,7 @@ html.modal-open{overflow:hidden}
       <div class="prog-t"><b id="pgK">0</b><span>of <span id="pgT">0</span> known</span></div>
       <div class="pbar" aria-hidden="true"><i class="k"></i><i class="s"></i><i class="n"></i></div>
       <div class="prog-s" id="pgS"></div>
-      <select id="markFilter" aria-label="Show questions by how well you know them"><option value="">Show all questions</option><option value="s">Only Shaky</option><option value="n">Only Not yet</option><option value="u">Only not marked</option><option value="k">Only Known</option></select>
+      <select id="markFilter" aria-label="Show questions by how well you know them"><option value="">Show all questions</option><option value="w">Only Shaky + Not yet</option><option value="s">Only Shaky</option><option value="n">Only Not yet</option><option value="u">Only not marked</option><option value="k">Only Known</option></select>
     </div>
     <ol id="navlist"></ol>
   </nav>
@@ -508,6 +591,27 @@ html.modal-open{overflow:hidden}
       <div class="howto"><b>How to use this guide:</b> read the project sections first (sections 03–05) — that is where most questions come from. Then JavaScript and React. Practise every answer out loud, and replace any line marked "say what you actually used" with your real details.</div>
       <div class="legend"><span><i style="background:var(--acc)"></i>Questions with an animation show ▶ in the side menu. Play them, or step through with the arrows.</span><span><i style="background:var(--data)"></i>"From your code" boxes show what your repo actually does.</span></div>
     </div>
+    <section class="today" id="today" aria-labelledby="todayH">
+      <div class="td-head"><p class="td-kick">What to study</p><h2 id="todayH">Today</h2><span class="td-date" id="tdDate"></span></div>
+      <div class="td-grid">
+        <div class="td-card td-count">
+          <div class="td-big"><span id="tdDays">–</span><small id="tdDaysL">Set your interview date</small></div>
+          <label class="td-in"><span>Interview date</span><input type="date" id="tdDateIn"></label>
+          <p class="td-goal" id="tdGoal"></p>
+        </div>
+        <div class="td-card">
+          <div class="td-t">Review these<span class="td-n" id="tdRevN"></span></div>
+          <ol class="td-list" id="tdRev"></ol>
+          <div class="td-acts" id="tdActs"></div>
+        </div>
+        <div class="td-card">
+          <div class="td-stats"><div><b id="tdToday">0</b><small>marked today</small></div><div><b id="tdStreak">0</b><small id="tdStreakL">day streak</small></div></div>
+          <div class="td-t">Not started yet<span class="td-n" id="tdNewN"></span></div>
+          <div class="td-chips" id="tdNew"></div>
+        </div>
+      </div>
+    </section>
+    <div class="print-head" id="printHead"></div>
     <div id="content"></div>
     <p class="empty hide" id="noRes">No questions match that search.</p>
   </main>
@@ -2127,7 +2231,15 @@ const rateBtn = (m, extra = '') => `<button type="button" class="rate" data-m="$
 const RATE_BTNS = ['k', 's', 'n'].map(m => rateBtn(m)).join('');
 const QHIDE = '<div class="qhide"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c6 0 9.5 7 9.5 7a17 17 0 0 1-3 3.9M6.4 6.4A17 17 0 0 0 2.5 12S6 19 12 19a9.6 9.6 0 0 0 4.6-1.2M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg><span>Answer hidden. Say it out loud first, then check yourself.</span><button type="button" class="btn pri rv">Reveal answer</button></div>';
 function saveMarks() { try { localStorage.setItem(MK_KEY, JSON.stringify(MARKS)); } catch (e) {} }
-function setMark(qk, m) { if (m) MARKS[qk] = m; else delete MARKS[qk]; saveMarks(); paintMark(qk); paintProgress(); }
+/* study log: marks per day (for "today" and the streak), the day each question was last marked, and the interview date */
+const ST_KEY = 'mern-prep-study-v1';
+let STUDY = { log: {}, days: {}, date: '' }; try { Object.assign(STUDY, JSON.parse(localStorage.getItem(ST_KEY) || '{}')); } catch (e) {}
+const ymd = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+function saveStudy() { try { localStorage.setItem(ST_KEY, JSON.stringify(STUDY)); } catch (e) {} }
+function setMark(qk, m) {
+  if (m) { MARKS[qk] = m; const t = ymd(); STUDY.log[t] = (STUDY.log[t] || 0) + 1; STUDY.days[qk] = t; saveStudy(); } else delete MARKS[qk];
+  saveMarks(); paintMark(qk); paintProgress();
+}
 function paintMark(qk) {
   const a = document.querySelector(`article.q[data-qk="${qk}"]`); if (!a) return;
   const m = MARKS[qk] || '';
@@ -2144,6 +2256,84 @@ function paintProgress() {
   $('#pgK').textContent = tot.k; $('#pgT').textContent = tot.all;
   $('#pgS').textContent = [tot.s && `${tot.s} shaky`, tot.n && `${tot.n} not yet`].filter(Boolean).join(' · ');
   bar($('.prog .pbar'), tot);
+  paintToday(all, per, tot);
+}
+
+/* "Today" panel: countdown, daily target, what to review, streak, sections not started */
+function paintToday(all, per, tot) {
+  if (!$('#today')) return;
+  const now = new Date(), today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  $('#tdDate').textContent = now.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
+  // countdown + daily target
+  const left = tot.all - tot.k; let days = null;
+  if (STUDY.date) { const [y, m, d] = STUDY.date.split('-').map(Number); days = Math.round((new Date(y, m - 1, d) - today) / 864e5); }
+  $('#tdDateIn').value = STUDY.date || '';
+  const big = $('#tdDays'), lab = $('#tdDaysL'), goal = $('#tdGoal');
+  if (days === null) { big.textContent = '–'; lab.textContent = 'Set your interview date to get a daily target'; goal.textContent = left ? `${left} questions not marked Known yet.` : 'Every question is marked Known.'; }
+  else if (days > 0) { big.textContent = days; lab.textContent = days === 1 ? 'day to go. Interview is tomorrow' : 'days to go'; goal.innerHTML = left ? `Aim for <b>${Math.ceil(left / days)} questions a day</b> to get through the ${left} not yet Known.` : 'Everything is marked Known. Keep it fresh with a mock interview.'; }
+  else if (days === 0) { big.textContent = '0'; lab.textContent = 'Interview is today. Good luck'; goal.innerHTML = 'Skim the <b>study sheet</b> (Print menu) and run one short mock to warm up.'; }
+  else { big.textContent = '–'; lab.textContent = 'That date has passed. Set the next one'; goal.textContent = ''; }
+  // review list: Shaky first, then Not yet, oldest mark first
+  const weak = all.filter(a => /^[sn]$/.test(MARKS[a.dataset.qk] || '')).sort((a, b) => (MARKS[a.dataset.qk] === 's' ? 0 : 1) - (MARKS[b.dataset.qk] === 's' ? 0 : 1) || (STUDY.days[a.dataset.qk] || '').localeCompare(STUDY.days[b.dataset.qk] || ''));
+  $('#tdRevN').textContent = weak.length ? weak.length : '';
+  $('#tdRev').innerHTML = weak.length ? weak.slice(0, 5).map(a => { const m = MARKS[a.dataset.qk]; return `<li><a href="#${a.id}"><span class="dot ${m}" title="${MARK_LABEL[m]}"></span><span>${esc(a.querySelector('.q-h h3').textContent)}</span></a></li>`; }).join('')
+    : '<li class="td-empty">Nothing to review yet. Mark questions as you read, or run a mock interview to find your weak spots.</li>';
+  $('#tdActs').innerHTML = weak.length ? `<button type="button" class="btn pri sm" data-td="weak">Practise ${weak.length > 5 ? `all ${weak.length}` : 'these'}</button>` : `<button type="button" class="btn pri sm" data-td="mock">Start a mock interview</button>`;
+  // today + streak
+  let streak = 0; const d = new Date(today); if (!STUDY.log[ymd(d)]) d.setDate(d.getDate() - 1);
+  while (STUDY.log[ymd(d)]) { streak++; d.setDate(d.getDate() - 1); }
+  $('#tdToday').textContent = STUDY.log[ymd(today)] || 0; $('#tdStreak').textContent = streak; $('#tdStreakL').textContent = streak === 1 ? 'day streak' : 'days in a row';
+  // sections with no marks yet
+  const fresh = window.DATA.filter(s => per[s.num] && !(per[s.num].k + per[s.num].s + per[s.num].n));
+  $('#tdNewN').textContent = fresh.length ? fresh.length : '';
+  $('#tdNew').innerHTML = fresh.length ? fresh.slice(0, 6).map(s => `<a class="td-chip" href="#sec${s.num}"><span>${s.num}</span>${esc(s.title.replace(/ questions$/i, ''))}</a>`).join('') + (fresh.length > 6 ? `<span class="td-more">+${fresh.length - 6} more</span>` : '')
+    : '<p class="td-empty">You’ve marked something in every section.</p>';
+  const pw = $('#pmWeak'); if (pw) pw.textContent = weak.length ? `Only the ${weak.length} question${weak.length > 1 ? 's' : ''} marked Shaky or Not yet` : 'Mark some questions Shaky or Not yet first';
+  const pb = $('[data-print="weak"]'); if (pb) pb.disabled = !weak.length;
+}
+function setupToday() {
+  $('#tdDateIn').addEventListener('change', e => { STUDY.date = e.target.value; saveStudy(); paintProgress(); });
+  $('#today').addEventListener('click', e => {
+    const b = e.target.closest('[data-td]'); if (!b) return;
+    if (b.dataset.td === 'mock') { $('#mockBtn').click(); return; }
+    const f = $('#markFilter'); f.value = 'w'; f.dispatchEvent(new Event('change')); setPractice(true);
+    const first = document.querySelector('article.q[data-qk]:not(.hide)');
+    if (first) first.scrollIntoView({ behavior: RM ? 'auto' : 'smooth', block: 'start' });
+    toast('Showing only Shaky and Not yet questions. Change it in the side menu.');
+  });
+}
+
+/* print: full guide, study sheet (questions + Quick recall), or weak spots only */
+function doPrint(mode) {
+  if (editing) setEditing(false);
+  const b = document.body, n = mode === 'weak' ? document.querySelectorAll('article.q[data-mark="s"],article.q[data-mark="n"]').length : 234;
+  $('#printHead').innerHTML = mode === 'full' ? '' : `<b>${mode === 'weak' ? 'Weak spots sheet' : 'Study sheet'}</b> · MERN Interview Prep · Sahil Raj · ${new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}${mode === 'weak' ? ` · ${n} questions` : ''}`;
+  b.classList.toggle('print-sheet', mode !== 'full'); b.classList.toggle('print-weak', mode === 'weak');
+  const done = () => { b.classList.remove('print-sheet', 'print-weak'); window.removeEventListener('afterprint', done); };
+  window.addEventListener('afterprint', done);
+  try { window.print(); } catch (e) { done(); toast('Printing isn’t available here. Download the HTML and print it from your browser.'); }
+}
+function setupPrintMenu() {
+  const btn = $('#printBtn'), menu = $('#printMenu');
+  const close = () => { menu.hidden = true; btn.setAttribute('aria-expanded', 'false'); };
+  const open = () => {
+    const r = btn.getBoundingClientRect();
+    menu.hidden = false; btn.setAttribute('aria-expanded', 'true');
+    menu.style.top = (r.bottom + 8) + 'px';
+    menu.style.left = Math.max(12, Math.min(r.right - menu.offsetWidth, innerWidth - menu.offsetWidth - 12)) + 'px';
+    menu.querySelector('button:not(:disabled)').focus();
+  };
+  btn.addEventListener('click', e => { e.stopPropagation(); menu.hidden ? open() : close(); });
+  menu.addEventListener('click', e => { const it = e.target.closest('[data-print]'); if (!it || it.disabled) return; close(); doPrint(it.dataset.print); });
+  menu.addEventListener('keydown', e => {
+    const items = [...menu.querySelectorAll('button:not(:disabled)')], i = items.indexOf(document.activeElement);
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); items[(i + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length].focus(); }
+    else if (e.key === 'Escape') { close(); btn.focus(); }
+    else if (e.key === 'Tab') close();
+  });
+  document.addEventListener('click', e => { if (!menu.hidden && !menu.contains(e.target)) close(); });
+  window.addEventListener('resize', close);
+  document.addEventListener('scroll', close, { passive: true });
 }
 
 /* practice mode */
@@ -2464,7 +2654,7 @@ function setupNav() {
   const apply = () => {
     const q = $('#search').value.trim().toLowerCase(), only = $('#onlyAnim').checked, mf = $('#markFilter').value;
     let shown = 0;
-    const markOk = a => !mf || (a.dataset.qk && (mf === 'u' ? !a.dataset.mark : a.dataset.mark === mf));
+    const markOk = a => !mf || (a.dataset.qk && (mf === 'u' ? !a.dataset.mark : mf === 'w' ? /^[sn]$/.test(a.dataset.mark || '') : a.dataset.mark === mf));
     document.querySelectorAll('article.q').forEach(a => { const ok = (!only || a.dataset.hasAnim === '1') && markOk(a) && (!q || a.textContent.toLowerCase().includes(q)); a.classList.toggle('hide', !ok); if (ok) shown++; });
     secs.forEach(s => { const any = s.querySelector('article.q:not(.hide)'); const filtering = q || only || mf; s.classList.toggle('hide', !!filtering && !any); s.querySelectorAll('.intro,.lede').forEach(x => x.classList.toggle('hide', !!filtering)); });
     $('#noRes').classList.toggle('hide', shown > 0);
@@ -2505,7 +2695,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const h = document.body.classList.toggle('navhidden');
     try { localStorage.setItem('mern-nav-hidden', h ? '1' : '0'); } catch (e) {}
   });
-  $('#printBtn').addEventListener('click', () => { if (editing) setEditing(false); try { window.print(); } catch (e) { toast('Printing isn\u2019t available here. Download the HTML and print it from your browser.'); } });
+  setupPrintMenu();
+  setupToday();
   $('#resetBtn').addEventListener('click', () => { if (!Object.keys(LOCAL).length) { toast('No unsaved browser edits to undo.'); return; } if (!confirm('Undo the edits saved in this browser? Edits already saved into the page stay.')) return; LOCAL = {}; try { localStorage.removeItem(LS_KEY); } catch (e) {} location.reload(); });
   const nE = Object.keys(LOCAL).length; status(nE ? `${nE} edit${nE > 1 ? 's' : ''} in this browser` : '');
   // optional platform features
