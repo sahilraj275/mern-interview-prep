@@ -277,27 +277,48 @@ body.editing .editbanner{display:block}
 .qgrid{margin-top:12px}
 .qgrid > .qbody{margin-top:0}
 @media (min-width:981px){article.q:not(.h) > .qgrid{margin-left:56px}}
-.mm{margin:18px 0 4px;border-radius:18px;padding:14px 16px 10px;background:var(--sunk);box-shadow:0 0 0 1px var(--line2);max-width:72ch}
-.mm-h{display:flex;align-items:center;gap:8px;font:600 12px/1 var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--acc);margin:2px 2px 10px}
-.mm-h span{margin-left:auto;color:var(--muted);letter-spacing:.02em;text-transform:none;font-weight:500}
+.mm{position:relative;margin:22px 0 4px;border-radius:18px;padding:16px 16px 6px;max-width:72ch;overflow:hidden;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--acc) 13%,var(--surface)),color-mix(in srgb,var(--acc) 4%,var(--surface)) 75%);
+  border:1px solid color-mix(in srgb,var(--acc) 40%,var(--line));
+  box-shadow:0 18px 40px -22px color-mix(in srgb,var(--acc) 70%,transparent),0 2px 8px -3px rgb(0 0 0/.14)}
+.mm::before{content:"";position:absolute;inset:0 0 auto;height:3px;background:linear-gradient(90deg,var(--acc),var(--data));transform-origin:left}
+.mm-h{display:flex;align-items:center;gap:10px;margin:0 0 6px;font:700 12px/1 var(--font);letter-spacing:.09em;text-transform:uppercase;color:var(--acc)}
+.mm-h .mm-badge{flex:none;width:28px;height:28px;border-radius:9px;display:grid;place-items:center;background:var(--acc);color:var(--surface)}
+.mm-h .mm-badge svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.mm-h .mm-n{margin-left:auto;font:600 12px/1 var(--font);letter-spacing:0;text-transform:none;color:var(--acc);background:color-mix(in srgb,var(--acc) 14%,transparent);padding:5px 9px;border-radius:999px}
 .mm ol{list-style:none;margin:0;padding:0}
-.mm li{display:grid;grid-template-columns:30px minmax(0,1fr);gap:10px;align-items:start;padding:8px 2px;border-top:1px solid var(--line2)}
+.mm li{display:grid;grid-template-columns:28px minmax(0,1fr);column-gap:12px;align-items:start;padding:10px 0;border-top:1px solid color-mix(in srgb,var(--acc) 16%,var(--line2))}
 .mm li:first-child{border-top:0}
-.mm .ic{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:var(--surface);box-shadow:0 0 0 1px var(--line2);color:var(--ink2)}
-.mm .ic svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.mm b{display:block;font:650 14.5px/1.3 var(--font);color:var(--ink)}
-.mm small{display:block;font-size:13.5px;line-height:1.4;color:var(--muted);margin-top:2px;overflow-wrap:anywhere}
+.mm .ic{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;background:color-mix(in srgb,var(--acc) 15%,var(--surface));color:var(--acc)}
+.mm .ic svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.mm b{display:block;font:650 15px/20px var(--font);padding-top:4px;color:var(--ink)}
+.mm small{display:block;font-size:13.5px;line-height:1.45;color:var(--ink2);margin-top:2px;overflow-wrap:anywhere}
+/* side-by-side: answer column is as wide as the text itself, so the card sits right where the answer ends */
 @media (min-width:1240px){
-  .qgrid.has-mm{display:grid;grid-template-columns:minmax(0,1fr) 262px;gap:28px;align-items:start}
-  .qgrid.has-mm .mm{margin:4px 0 0;position:sticky;top:calc(env(safe-area-inset-top,0px) + var(--barh) + 18px)}
+  .qgrid.has-mm{display:grid;grid-template-columns:minmax(0,68ch) minmax(240px,290px);column-gap:36px;justify-content:start;align-items:start}
+  .qgrid.has-mm .mm{margin:2px 0 0;position:sticky;top:calc(env(safe-area-inset-top,0px) + var(--barh) + 18px)}
 }
+@media (min-width:981px) and (max-width:1239px){
+  body.navhidden .qgrid.has-mm{display:grid;grid-template-columns:minmax(0,68ch) minmax(240px,290px);column-gap:36px;justify-content:start;align-items:start}
+  body.navhidden .qgrid.has-mm .mm{margin:2px 0 0;position:sticky;top:calc(env(safe-area-inset-top,0px) + var(--barh) + 18px)}
+}
+/* entrance: card rises in, accent bar draws, points stagger, one soft glow. Only when motion is allowed (class set by JS). */
+.mm-anim .mm{opacity:0;transform:translateY(16px) scale(.97);transition:opacity .45s ease-out,transform .6s cubic-bezier(.16,1,.3,1)}
+.mm-anim .mm::before{transform:scaleX(0);transition:transform .8s cubic-bezier(.16,1,.3,1) .15s}
+.mm-anim .mm li{opacity:0;transform:translateY(8px);transition:opacity .35s ease-out,transform .45s cubic-bezier(.16,1,.3,1);transition-delay:calc(.18s + var(--i,0) * 60ms)}
+.mm-anim .mm .ic{transform:scale(.6);transition:transform .5s cubic-bezier(.34,1.56,.64,1);transition-delay:calc(.24s + var(--i,0) * 60ms)}
+.mm-anim .mm.in,.mm-anim .mm.in li{opacity:1;transform:none}
+.mm-anim .mm.in::before,.mm-anim .mm.in .ic{transform:none}
+.mm-anim .mm.in{animation:mmGlow 1.6s ease-out .5s 1}
+@keyframes mmGlow{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--acc) 45%,transparent),0 18px 40px -22px color-mix(in srgb,var(--acc) 70%,transparent)}100%{box-shadow:0 0 0 14px color-mix(in srgb,var(--acc) 0%,transparent),0 18px 40px -22px color-mix(in srgb,var(--acc) 70%,transparent)}}
+@media (prefers-reduced-motion:reduce){.mm-anim .mm,.mm-anim .mm li,.mm-anim .mm .ic,.mm-anim .mm::before{opacity:1;transform:none;transition:none;animation:none}}
 .mm [data-ek][contenteditable="true"]{outline:1px dashed var(--line);outline-offset:2px;border-radius:4px}
 .anim-slot{max-width:720px}
 .anim-slot:has(.anim-body.has-code){max-width:960px}
 @media (min-width:981px){article.q:not(.h) > .anim-slot{margin-left:56px}}
 body.hide-mm .mm{display:none}
 body.hide-mm .qgrid.has-mm{display:block}
-@media print{.mm{position:static!important;break-inside:avoid}}
+@media print{.mm{position:static!important;break-inside:avoid;box-shadow:none!important}.mm,.mm li,.mm .ic,.mm::before{opacity:1!important;transform:none!important}}
 </style>
 </head>
 <body>
@@ -1938,7 +1959,7 @@ const MM_RULES = [
 function mmIcon(t, d) { const s = (t + ' ' + d).toLowerCase(); const r = MM_RULES.find(([, re]) => re.test(s)); return MM_ICONS[r ? r[0] : 'dot']; }
 function memoryMap(key, id) {
   const pts = (window.POINTS || {})[key]; if (!pts || !pts.length) return '';
-  return `<aside class="mm" aria-label="Quick recall pointers"><div class="mm-h">Quick recall<span>${pts.length} points</span></div><ol>${pts.map(([t, d], i) => `<li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24">${mmIcon(t, d)}</svg></span><div><b data-ek="${id}-mm${i}t">${esc(t)}</b><small data-ek="${id}-mm${i}d">${esc(d)}</small></div></li>`).join('')}</ol></aside>`;
+  return `<aside class="mm" aria-label="Quick recall pointers"><div class="mm-h"><span class="mm-badge" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 21.5h4M12 2.5a6.5 6.5 0 0 0-3.9 11.7c.6.5.9 1.2.9 2V17h6v-.8c0-.8.3-1.5.9-2A6.5 6.5 0 0 0 12 2.5z"/></svg></span>Quick recall<span class="mm-n">${pts.length} points</span></div><ol>${pts.map(([t, d], i) => `<li style="--i:${i}"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24">${mmIcon(t, d)}</svg></span><div><b data-ek="${id}-mm${i}t">${esc(t)}</b><small data-ek="${id}-mm${i}d">${esc(d)}</small></div></li>`).join('')}</ol></aside>`;
 }
 let animCount = 0;
 function render() {
@@ -1982,6 +2003,12 @@ function render() {
     } else if (p && !e.isIntersecting) p.pause();
   }), { threshold: [0, .1, .2, .3, .4, .5, .6, .8, 1] });
   document.querySelectorAll('.anim-slot').forEach(sl => io.observe(sl));
+  // quick recall cards play their entrance once, the first time they scroll into view
+  if (!RM && 'IntersectionObserver' in window) {
+    document.documentElement.classList.add('mm-anim');
+    const mo = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); mo.unobserve(e.target); } }), { threshold: .2, rootMargin: '0px 0px -8% 0px' });
+    document.querySelectorAll('.mm').forEach(m => mo.observe(m));
+  }
 }
 function inView(n) { const r = n.getBoundingClientRect(); return r.bottom > 80 && r.top < innerHeight - 80 && !n.closest('.hide'); }
 function applyEdits(E) {
