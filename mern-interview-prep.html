@@ -794,6 +794,13 @@ kbd{font-family:var(--mono);border-radius:5px;background:var(--sunk);box-shadow:
 .td-late{flex:none;margin-left:auto;font:500 11px/1 var(--mono);color:var(--warn);padding:3px 6px;border-radius:5px;background:color-mix(in srgb,var(--warn) 12%,transparent)}
 .td-empty b{color:var(--ink)}
 
+/* back up / restore */
+.prog-io{display:flex;justify-content:space-between;gap:8px;margin-top:10px}
+.prog-io .lnk{font-size:13px;padding:6px 2px}
+.prog-bk{font:500 11.5px/1.4 var(--mono);color:var(--muted)}
+.prog-bk:empty{display:none}
+.prog-bk.old{color:var(--warn)}
+
 /* print: plain paper */
 @media print{
   body{background:#fff!important}
@@ -835,6 +842,8 @@ kbd{font-family:var(--mono);border-radius:5px;background:var(--sunk);box-shadow:
       <div class="pbar" aria-hidden="true"><i class="k"></i><i class="s"></i><i class="n"></i></div>
       <div class="prog-s" id="pgS"></div>
       <select id="markFilter" aria-label="Show questions by how well you know them"><option value="">Show all questions</option><option value="d">Only due for review</option><option value="w">Only Shaky + Not yet</option><option value="s">Only Shaky</option><option value="n">Only Not yet</option><option value="u">Only not marked</option><option value="k">Only Known</option></select>
+      <div class="prog-io"><button type="button" class="lnk" id="bkExport">Back up progress</button><button type="button" class="lnk" id="bkImport">Restore</button><input type="file" id="bkFile" accept="application/json,.json" hidden></div>
+      <div class="prog-bk" id="bkWhen"></div>
     </div>
     <ol id="navlist"></ol>
   </nav>
@@ -2541,6 +2550,59 @@ function paintProgress() {
   $('#pgS').textContent = [tot.due && `${tot.due} due today`, tot.s && `${tot.s} shaky`, tot.n && `${tot.n} not yet`].filter(Boolean).join(' · ');
   bar($('.prog .pbar'), tot);
   paintToday(all, per, tot);
+  paintBackup();
+}
+
+/* back up / restore: progress lives only in this browser, so let it travel as a file between devices */
+const BK_KEY = 'mern-prep-backup-at';
+function backupData() {
+  let checks = {}; try { checks = JSON.parse(localStorage.getItem(CK_KEY) || '{}'); } catch (e) {}
+  return { app: 'mern-interview-prep', version: 1, exported: new Date().toISOString(), marks: MARKS, study: STUDY, checks, edits: LOCAL };
+}
+function paintBackup() {
+  const el = $('#bkWhen'); if (!el) return;
+  let at = null; try { at = localStorage.getItem(BK_KEY); } catch (e) {}
+  const n = Object.keys(MARKS).length, ago = at ? -daysUntil(at) : null;
+  el.textContent = at ? `Last backup ${ago <= 0 ? 'today' : ago === 1 ? 'yesterday' : `${ago} days ago`}` : n ? 'Not backed up yet' : '';
+  el.classList.toggle('old', n >= 10 && (ago === null || ago >= 7));
+}
+function exportProgress() {
+  const url = URL.createObjectURL(new Blob([JSON.stringify(backupData(), null, 2)], { type: 'application/json' }));
+  const a = document.createElement('a'); a.href = url; a.download = `mern-prep-progress-${ymd()}.json`;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+  try { localStorage.setItem(BK_KEY, ymd()); } catch (e) {}
+  paintBackup(); toast('Progress saved to a file. Use Restore to open it on any device.');
+}
+async function importProgress(file) {
+  let d; try { d = JSON.parse(await file.text()); } catch (e) { d = null; }
+  if (!d || d.app !== 'mern-interview-prep' || !d.marks || typeof d.marks !== 'object') { toast('That file isn’t a progress backup from this guide.'); return; }
+  const fs = d.study || {}, fdays = fs.days || {}, fsrs = fs.srs || {}, n = Object.keys(d.marks).length;
+  if (!confirm(`Restore ${n} marked question${n === 1 ? '' : 's'} from a backup made ${new Date(d.exported).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}?\n\nThis merges with the progress in this browser. Where both have marked the same question, the more recent mark wins.`)) return;
+  let taken = 0;
+  Object.entries(d.marks).forEach(([qk, m]) => {
+    if (!/^[kns]$/.test(m)) return;
+    const theirs = fdays[qk] || '', mine = STUDY.days[qk] || '';
+    if (MARKS[qk] && theirs < mine) return; // this browser has the newer mark
+    MARKS[qk] = m; if (theirs) STUDY.days[qk] = theirs;
+    const s = fsrs[qk]; if (s && Number.isInteger(s.b) && /^\d{4}-\d{2}-\d{2}$/.test(s.due || '')) STUDY.srs[qk] = { b: s.b, due: s.due }; else delete STUDY.srs[qk];
+    taken++;
+  });
+  Object.entries(fs.log || {}).forEach(([day, c]) => { STUDY.log[day] = Math.max(STUDY.log[day] || 0, +c || 0); });
+  if (fs.date && !STUDY.date) STUDY.date = fs.date;
+  try {
+    const checks = JSON.parse(localStorage.getItem(CK_KEY) || '{}');
+    Object.entries(d.checks || {}).forEach(([k, v]) => { if (v) checks[k] = true; });
+    localStorage.setItem(CK_KEY, JSON.stringify(checks));
+    if (d.edits && typeof d.edits === 'object') { Object.assign(LOCAL, d.edits); localStorage.setItem(LS_KEY, JSON.stringify(LOCAL)); }
+  } catch (e) {}
+  saveMarks(); saveStudy();
+  toast(`Restored ${taken} mark${taken === 1 ? '' : 's'}. Reloading…`);
+  setTimeout(() => location.reload(), 900);
+}
+function setupBackup() {
+  $('#bkExport').addEventListener('click', exportProgress);
+  $('#bkImport').addEventListener('click', () => $('#bkFile').click());
+  $('#bkFile').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if (f) importProgress(f); });
 }
 
 /* "Today" panel: countdown, daily target, what to review, streak, sections not started */
@@ -2969,6 +3031,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#editBtn').addEventListener('click', () => setEditing(!editing));
   setupFileSave();
   setupMock();
+  setupBackup();
   try { if (localStorage.getItem('mern-prep-practice') === '1') setPractice(true); } catch (e) {}
   $('#practiceBtn').addEventListener('click', () => setPractice(!document.body.classList.contains('practice')));
   document.addEventListener('click', e => {
