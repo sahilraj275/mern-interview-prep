@@ -794,6 +794,30 @@ kbd{font-family:var(--mono);border-radius:5px;background:var(--sunk);box-shadow:
 .td-late{flex:none;margin-left:auto;font:500 11px/1 var(--mono);color:var(--warn);padding:3px 6px;border-radius:5px;background:color-mix(in srgb,var(--warn) 12%,transparent)}
 .td-empty b{color:var(--ink)}
 
+/* record yourself */
+.qrec{display:none;margin-top:14px}
+body.practice article.q[data-qk] .qrec{display:flex}
+@media (min-width:981px){article.q:not(.h) > .qrec{margin-left:56px}}
+.rec-slot{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.rec-slot:empty{display:none}
+.mk-rec{margin-top:14px}
+.rec-dot{flex:none;width:8px;height:8px;border-radius:50%;background:var(--err)}
+.rec-dot.on{animation:recPulse 1.2s ease-out infinite}
+@keyframes recPulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--err) 60%,transparent)}75%,100%{box-shadow:0 0 0 7px transparent}}
+.btn.rec-stop{background:color-mix(in srgb,var(--err) 13%,var(--surface));color:var(--err);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--err) 50%,transparent)}
+.rec-t{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.rec-hint{font-size:13px;color:var(--muted)}
+.rec-out{flex-basis:100%;display:grid;gap:8px;padding:12px;border-radius:12px;background:var(--sunk);box-shadow:inset 0 0 0 1px var(--line);max-width:68ch}
+.rec-out audio{width:100%;height:38px}
+.rec-meta{display:flex;flex-wrap:wrap;gap:4px 8px;font:500 12.5px/1.5 var(--mono);color:var(--ink2)}
+.rec-meta i{font-style:normal;color:var(--muted)}
+.rec-meta .warn{color:var(--warn)}
+.rec-tx summary{cursor:pointer;font-size:13px;color:var(--muted);width:max-content}
+.rec-tx p{margin:8px 0 0;font-size:14.5px;line-height:1.6;color:var(--ink2)}
+.rec-tx mark{background:color-mix(in srgb,var(--warn) 22%,transparent);color:var(--ink);border-radius:3px;padding:0 2px}
+@media (prefers-reduced-motion:reduce){.rec-dot.on{animation:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--err) 35%,transparent)}}
+@media print{.qrec,.rec-slot{display:none!important}}
+
 /* back up / restore */
 .prog-io{display:flex;justify-content:space-between;gap:8px;margin-top:10px}
 .prog-io .lnk{font-size:13px;padding:6px 2px}
@@ -2694,6 +2718,70 @@ function setPractice(on) {
   try { localStorage.setItem('mern-prep-practice', on ? '1' : '0'); } catch (e) {}
 }
 
+/* record yourself: microphone recording with playback, length, pace and filler words.
+   Audio stays in memory in this browser; nothing is uploaded. Pace and fillers need the
+   browser's speech recognition (Chrome, Edge); without it you still get playback and length. */
+const REC_OK = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+const FILLERS = /\b(?:um+|uh+|erm+|hmm+|like|basically|actually|you know|kind of|sort of|i mean)\b/gi;
+let REC = null;
+const recButton = (label = 'Record answer') => REC_OK ? `<button type="button" class="btn ghost sm rec-go"><span class="rec-dot" aria-hidden="true"></span>${label}</button>` : '';
+async function recStart(slot) {
+  if (REC) recStop();
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+  catch (e) { toast(e && e.name === 'NotAllowedError' ? 'The microphone is blocked. Allow it in your browser’s site settings to record.' : 'No microphone found.'); return; }
+  const r = { slot, stream, mr: new MediaRecorder(stream), chunks: [], t0: performance.now(), text: '', sr: null, timer: 0, secs: 0 };
+  r.mr.ondataavailable = e => { if (e.data.size) r.chunks.push(e.data); };
+  r.mr.onstop = () => recDone(r);
+  r.mr.start();
+  if (SpeechRec) {
+    try {
+      const sr = new SpeechRec(); sr.continuous = true; sr.interimResults = false; sr.lang = navigator.language || 'en-IN';
+      sr.onresult = ev => { for (let i = ev.resultIndex; i < ev.results.length; i++) if (ev.results[i].isFinal) r.text += ev.results[i][0].transcript + ' '; };
+      sr.onerror = () => {};
+      sr.onend = () => { if (REC === r) try { sr.start(); } catch (e) {} }; // recognition stops on long pauses; keep it going while recording
+      sr.start(); r.sr = sr;
+    } catch (e) {}
+  }
+  REC = r;
+  slot.innerHTML = `<button type="button" class="btn sm rec-stop"><span class="rec-dot on" aria-hidden="true"></span>Stop <span class="rec-t">0:00</span></button><span class="rec-hint">Recording. Answer out loud, then stop.</span>`;
+  const t = slot.querySelector('.rec-t');
+  r.timer = setInterval(() => { t.textContent = mmss((performance.now() - r.t0) / 1000); }, 250);
+  slot.querySelector('.rec-stop').focus({ preventScroll: true });
+}
+function recStop() {
+  const r = REC; if (!r) return;
+  REC = null; clearInterval(r.timer); r.secs = (performance.now() - r.t0) / 1000;
+  if (r.sr) try { r.sr.stop(); } catch (e) {}
+  if (r.mr.state !== 'inactive') r.mr.stop();
+  r.stream.getTracks().forEach(t => t.stop());
+}
+function recDone(r) {
+  if (!r.slot.isConnected) return; // the question it belonged to is gone (mock moved on)
+  const url = URL.createObjectURL(new Blob(r.chunks, { type: r.mr.mimeType || 'audio/webm' }));
+  if (r.slot._url) URL.revokeObjectURL(r.slot._url);
+  r.slot._url = url;
+  const paint = () => {
+    const text = r.text.trim(), words = text ? text.split(/\s+/).length : 0, wpm = words && r.secs ? Math.round(words / (r.secs / 60)) : 0;
+    const fills = (text.match(FILLERS) || []).map(w => w.toLowerCase()), counts = {};
+    fills.forEach(w => { counts[w] = (counts[w] || 0) + 1; });
+    const over = r.secs > MOCK_SECS;
+    const meta = [`<span class="${over ? 'warn' : ''}">${mmss(r.secs)}${over ? ' · over 90 seconds' : ''}</span>`];
+    if (words) {
+      meta.push(`<span class="${wpm > 170 || wpm < 100 ? 'warn' : ''}">${wpm} words/min${wpm > 170 ? ' (a bit fast)' : wpm < 100 ? ' (a bit slow)' : ''}</span>`);
+      meta.push(`<span class="${fills.length > 3 ? 'warn' : ''}">${fills.length ? `${fills.length} filler word${fills.length > 1 ? 's' : ''}: ${Object.entries(counts).map(([w, n]) => n > 1 ? `${w} ×${n}` : w).join(', ')}` : 'no filler words'}</span>`);
+    }
+    const said = words ? `<details class="rec-tx"><summary>What you said</summary><p>${esc(text).replace(FILLERS, m => `<mark>${m}</mark>`)}</p></details>` : '';
+    r.slot.innerHTML = `<div class="rec-out"><audio controls preload="metadata" src="${url}"></audio><div class="rec-meta">${meta.join('<i aria-hidden="true">·</i>')}</div>${said}</div>${recButton('Record again')}`;
+  };
+  r.sr ? setTimeout(paint, 900) : paint(); // let the last spoken words arrive first
+}
+document.addEventListener('click', e => {
+  const go = e.target.closest('.rec-go'); if (go) { recStart(go.closest('.rec-slot')); return; }
+  if (e.target.closest('.rec-stop')) recStop();
+});
+
 /* mock interview: questions drawn only from the sections you pick; with every section on, it is mixed like a real round */
 const MOCK_POOLS = [{ secs: ['02'] }, { secs: ['03', '04', '05', '06'] }, { secs: ['07', '08', '09', '10', '11', '12', '13', '14'] }, { secs: ['15', '16'] }];
 const MOCK_MIX = { 5: [1, 2, 1, 1], 10: [1, 4, 4, 1], 15: [2, 6, 5, 2] }; // HR, projects, core tech, scenario/coding
@@ -2759,8 +2847,9 @@ function mockQuestion() {
     <div class="mk-qrow"><h2 class="mk-q" id="mockTitle">${q}</h2>
     <div class="mk-timer" role="timer" aria-label="Time left"><svg viewBox="0 0 64 64" aria-hidden="true"><circle class="tr" cx="32" cy="32" r="26"/><circle class="pr" cx="32" cy="32" r="26" style="stroke-dashoffset:0"/></svg><span class="tt">${mmss(MOCK_SECS)}</span></div></div>
     <p class="mk-tip" id="mkTip">Answer out loud. Aim for 60–90 seconds, and bring it back to your own project where you can.</p>
+    <div class="rec-slot mk-rec">${recButton('Record my answer')}</div>
     <div id="mkAns"></div></div>`,
-    `<span class="lbl">Press <kbd>Space</kbd> to show the answer</span><button type="button" class="btn ghost" data-mk="skip">Skip</button><button type="button" class="btn pri" data-mk="reveal">Show answer</button>`,
+    `<span class="lbl">Press <kbd>Space</kbd> to show the answer${REC_OK ? ', <kbd>R</kbd> to record' : ''}</span><button type="button" class="btn ghost" data-mk="skip">Skip</button><button type="button" class="btn pri" data-mk="reveal">Show answer</button>`,
     `Question ${MOCK.i + 1} of ${MOCK.list.length}`);
   MOCK.t0 = performance.now(); mockStopTimer();
   const ring = $('#mkMain .mk-timer'), pr = ring.querySelector('.pr'), tt = ring.querySelector('.tt');
@@ -2776,7 +2865,8 @@ function mockQuestion() {
 }
 function mockReveal() {
   if (MOCK.state !== 'q' || MOCK.revealed) return;
-  MOCK.revealed = true; MOCK.used = (performance.now() - MOCK.t0) / 1000; mockStopTimer();
+  MOCK.revealed = true; MOCK.used = (performance.now() - MOCK.t0) / 1000; mockStopTimer(); recStop();
+  const rs = $('#mkMain .mk-rec'); if (rs && !rs.querySelector('.rec-out')) rs.innerHTML = '';
   $('#mkMain .mk-timer').classList.add('done');
   const a = MOCK.list[MOCK.i], box = $('#mkAns'); box.className = 'mk-ans';
   [a.querySelector('.mm'), a.querySelector('.qbody'), a.querySelector('.note')].filter(Boolean).forEach(p => {
@@ -2791,6 +2881,7 @@ function mockReveal() {
 }
 function mockNext(m) {
   if (MOCK.state !== 'q') return;
+  recStop();
   const a = MOCK.list[MOCK.i];
   if (m) setMark(a.dataset.qk, m);
   MOCK.res[MOCK.i] = { a, m: m || 'skip', t: MOCK.revealed ? MOCK.used : (performance.now() - MOCK.t0) / 1000 };
@@ -2814,7 +2905,7 @@ function setupMock() {
   const d = $('#mock'); if (!d || !d.showModal) { $('#mockBtn').classList.add('hide'); return; }
   $('#mockBtn').addEventListener('click', () => { mockIntro(); d.showModal(); document.documentElement.classList.add('modal-open'); $('#mkFoot [data-mk="start"]').focus(); });
   $('#mkClose').addEventListener('click', () => d.close());
-  d.addEventListener('close', () => { mockStopTimer(); document.documentElement.classList.remove('modal-open'); });
+  d.addEventListener('close', () => { mockStopTimer(); if (REC && d.contains(REC.slot)) recStop(); document.documentElement.classList.remove('modal-open'); });
   d.addEventListener('cancel', e => { if (MOCK.state === 'q' && MOCK.i > 0 && !confirm('Stop this mock interview? Marks you already gave are kept.')) e.preventDefault(); });
   d.addEventListener('click', e => {
     const b = e.target.closest('[data-mk]'), r = e.target.closest('.mk-foot .rate'), g = e.target.closest('[data-go]');
@@ -2838,6 +2929,7 @@ function setupMock() {
   d.addEventListener('keydown', e => {
     if (MOCK.state !== 'q' || e.ctrlKey || e.metaKey || e.altKey || e.target.closest('input,select,textarea')) return;
     if (!MOCK.revealed && e.key === ' ' && !e.target.closest('button')) { e.preventDefault(); mockReveal(); }
+    else if (!MOCK.revealed && (e.key === 'r' || e.key === 'R') && REC_OK) { e.preventDefault(); const s = $('#mkMain .mk-rec'); REC ? recStop() : s && recStart(s); }
     else if (MOCK.revealed && ['1', '2', '3'].includes(e.key)) { e.preventDefault(); mockNext(['k', 's', 'n'][+e.key - 1]); }
   });
 }
@@ -2856,7 +2948,7 @@ function render() {
       const qk = it.label && it.kind !== 'h' ? key : '';
       return `<article class="q ${it.kind === 'h' ? 'h' : ''}" id="${id}" data-has-anim="${anims.length ? 1 : 0}"${qk ? ` data-qk="${qk}" data-sec="${sec.num}"` : ''}>
         <div class="q-h">${it.label ? `<span class="lb">${it.label.replace('.', '')}</span>` : ''}<h3 data-ek="${id}-t">${it.title}</h3></div>
-        ${(() => { const mm = memoryMap(`${sec.num}-${idx}`, id); return `<div class="qgrid${mm ? ' has-mm' : ''}">${qk ? QHIDE : ''}<div class="qbody">${blocks(it.body, id + '-')}</div>${mm}</div>`; })()}
+        ${(() => { const mm = memoryMap(`${sec.num}-${idx}`, id); return `<div class="qgrid${mm ? ' has-mm' : ''}">${qk ? QHIDE : ''}<div class="qbody">${blocks(it.body, id + '-')}</div>${mm}</div>${qk && REC_OK ? `<div class="qrec rec-slot">${recButton()}</div>` : ''}`; })()}
         ${NOTES[key] ? `<div class="note"><b>${NOTE_TITLE}</b>${NOTES[key]}</div>` : ''}
         ${qk ? `<div class="qact" role="group" aria-label="How well do you know this?"><span class="qact-l">How well do you know this?</span>${RATE_BTNS}<span class="qdue" aria-live="polite"></span></div>` : ''}
         ${anims.map(a => `<div class="anim-slot" data-anim="${a}"></div>`).join('')}
@@ -3041,7 +3133,7 @@ document.addEventListener('DOMContentLoaded', () => {
       setMark(qk, same && !isDue(qk) ? '' : r.dataset.m); return;
     }
     const v = e.target.closest('.qhide .rv');
-    if (v) { const a = v.closest('article.q'); a.classList.add('revealed'); a.querySelector('.qact .rate')?.focus({ preventScroll: true }); }
+    if (v) { const a = v.closest('article.q'); if (REC && a.contains(REC.slot)) recStop(); a.classList.add('revealed'); a.querySelector('.qact .rate')?.focus({ preventScroll: true }); }
   });
   try { if (localStorage.getItem('mern-nav-hidden') === '1') document.body.classList.add('navhidden'); } catch (e) {}
   $('#menuBtn').addEventListener('click', () => {
