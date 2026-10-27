@@ -63,7 +63,7 @@ button{font:inherit;color:inherit}
 /* below 1400px only Mock interview and Practice keep their labels, so the bar never runs off the screen */
 @media (max-width:1400px){.bar .tbtn:not(#mockBtn):not(#practiceBtn) .lbtxt{display:none}.bar .tbtn:not(#mockBtn):not(#practiceBtn){padding:9px}}
 @media (max-width:760px){.bar .brand span{display:none}}
-@media (min-width:981px){body.navhidden .wrap{grid-template-columns:minmax(0,1fr)} body.navhidden nav.side{display:none} .menu-btn[aria-pressed="true"]{background:var(--surface);color:var(--ink2)}}
+@media (min-width:981px){nav.side{width:272px} body.navhidden .wrap{grid-template-columns:0px minmax(0,1fr)} body.navhidden nav.side{visibility:hidden;pointer-events:none} .menu-btn[aria-pressed="true"]{background:var(--surface);color:var(--ink2)}}
 #saveState{font-size:13px;color:var(--muted);margin-right:6px}
 
 /* layout */
@@ -3140,6 +3140,22 @@ function setupNav() {
   $('#search').addEventListener('input', apply); $('#onlyAnim').addEventListener('change', apply); $('#markFilter').addEventListener('change', apply);
 }
 
+/* desktop side menu: the layout changes once, then the menu and the page slide with transforms only,
+   so the browser doesn't re-lay out and repaint the long page on every frame */
+let NAV_ANIMS = [];
+function toggleNav() {
+  const b = document.body, main = $('main'), nav = $('nav.side');
+  const x0 = main.getBoundingClientRect().left;
+  NAV_ANIMS.forEach(a => a.cancel());
+  const animate = !RM && !!main.animate;
+  const hide = b.classList.toggle('navhidden');
+  try { localStorage.setItem('mern-nav-hidden', hide ? '1' : '0'); } catch (e) {}
+  if (!animate) return;
+  const dx = x0 - main.getBoundingClientRect().left, o = { duration: 420, easing: 'cubic-bezier(.32,.72,0,1)' };
+  const shown = { transform: 'none', opacity: 1, visibility: 'visible' }, gone = { transform: 'translateX(-100%)', opacity: 0, visibility: 'visible' };
+  NAV_ANIMS = [main.animate([{ transform: `translateX(${dx}px)` }, { transform: 'none' }], o), nav.animate(hide ? [shown, gone] : [gone, shown], o)];
+}
+
 /* theme */
 function setupTheme() {
   const r = document.documentElement; let t = null; try { t = localStorage.getItem('mern-prep-theme'); } catch (e) {}
@@ -3175,8 +3191,7 @@ document.addEventListener('DOMContentLoaded', () => {
   try { if (localStorage.getItem('mern-nav-hidden') === '1') document.body.classList.add('navhidden'); } catch (e) {}
   $('#menuBtn').addEventListener('click', () => {
     if (matchMedia('(max-width:980px)').matches) { document.body.classList.toggle('navopen'); return; }
-    const h = document.body.classList.toggle('navhidden');
-    try { localStorage.setItem('mern-nav-hidden', h ? '1' : '0'); } catch (e) {}
+    toggleNav();
   });
   setupPrintMenu();
   setupToday();
