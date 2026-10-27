@@ -786,6 +786,14 @@ kbd{font-family:var(--mono);border-radius:5px;background:var(--sunk);box-shadow:
 .tag{font-family:var(--mono);border-radius:6px}
 .mk-list li{border-top-color:var(--line2)}
 
+/* spaced repetition */
+.qdue{flex-basis:100%;font:500 12px/1.4 var(--mono);color:var(--muted);margin-top:2px}
+.qdue:empty{display:none}
+.qdue.due{color:var(--warn)}
+.qdue.due::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--warn);box-shadow:0 0 8px var(--warn);margin-right:7px;vertical-align:1px}
+.td-late{flex:none;margin-left:auto;font:500 11px/1 var(--mono);color:var(--warn);padding:3px 6px;border-radius:5px;background:color-mix(in srgb,var(--warn) 12%,transparent)}
+.td-empty b{color:var(--ink)}
+
 /* print: plain paper */
 @media print{
   body{background:#fff!important}
@@ -826,7 +834,7 @@ kbd{font-family:var(--mono);border-radius:5px;background:var(--sunk);box-shadow:
       <div class="prog-t"><b id="pgK">0</b><span>of <span id="pgT">0</span> known</span></div>
       <div class="pbar" aria-hidden="true"><i class="k"></i><i class="s"></i><i class="n"></i></div>
       <div class="prog-s" id="pgS"></div>
-      <select id="markFilter" aria-label="Show questions by how well you know them"><option value="">Show all questions</option><option value="w">Only Shaky + Not yet</option><option value="s">Only Shaky</option><option value="n">Only Not yet</option><option value="u">Only not marked</option><option value="k">Only Known</option></select>
+      <select id="markFilter" aria-label="Show questions by how well you know them"><option value="">Show all questions</option><option value="d">Only due for review</option><option value="w">Only Shaky + Not yet</option><option value="s">Only Shaky</option><option value="n">Only Not yet</option><option value="u">Only not marked</option><option value="k">Only Known</option></select>
     </div>
     <ol id="navlist"></ol>
   </nav>
@@ -853,7 +861,7 @@ kbd{font-family:var(--mono);border-radius:5px;background:var(--sunk);box-shadow:
           <p class="td-goal" id="tdGoal"></p>
         </div>
         <div class="td-card">
-          <div class="td-t">Review these<span class="td-n" id="tdRevN"></span></div>
+          <div class="td-t">Due for review<span class="td-n" id="tdRevN"></span></div>
           <ol class="td-list" id="tdRev"></ol>
           <div class="td-acts" id="tdActs"></div>
         </div>
@@ -2489,25 +2497,48 @@ const ST_KEY = 'mern-prep-study-v1';
 let STUDY = { log: {}, days: {}, date: '' }; try { Object.assign(STUDY, JSON.parse(localStorage.getItem(ST_KEY) || '{}')); } catch (e) {}
 const ymd = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 function saveStudy() { try { localStorage.setItem(ST_KEY, JSON.stringify(STUDY)); } catch (e) {} }
+/* spaced repetition (Leitner boxes): Known moves a question up a box, Shaky down one, Not yet back to box 0.
+   Each box waits longer before the question is due again. */
+const SRS_DAYS = [1, 3, 7, 14, 30];
+if (!STUDY.srs || typeof STUDY.srs !== 'object') STUDY.srs = {};
+const parseYmd = s => { if (!s) return new Date(); const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const addDays = (n, from = new Date()) => { const t = new Date(from.getFullYear(), from.getMonth(), from.getDate()); t.setDate(t.getDate() + n); return ymd(t); };
+const daysUntil = s => Math.round((parseYmd(s) - parseYmd(ymd())) / 864e5);
+function srsOf(qk) { // marks saved before spaced repetition existed get a schedule from their mark
+  const m = MARKS[qk]; if (!m) return null;
+  return STUDY.srs[qk] || (m === 'k' ? { b: 3, due: addDays(SRS_DAYS[3], parseYmd(STUDY.days[qk])) } : { b: 0, due: ymd() });
+}
+const isDue = qk => { const s = srsOf(qk); return !!s && s.due <= ymd(); };
+function schedule(qk, m) {
+  const prev = STUDY.srs[qk]; let b;
+  if (m === 'n') b = 0;
+  else if (m === 's') b = prev ? Math.max(0, prev.b - 1) : 0;
+  else b = prev ? Math.min(SRS_DAYS.length - 1, prev.b + 1) : 3; // known at first sight: check again in two weeks
+  STUDY.srs[qk] = { b, due: addDays(SRS_DAYS[b]) };
+}
+const dueLabel = s => { const n = daysUntil(s); return n <= 0 ? 'Due for review today' : `Next review ${n === 1 ? 'tomorrow' : `in ${n} days`} · ${parseYmd(s).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}`; };
 function setMark(qk, m) {
-  if (m) { MARKS[qk] = m; const t = ymd(); STUDY.log[t] = (STUDY.log[t] || 0) + 1; STUDY.days[qk] = t; saveStudy(); } else delete MARKS[qk];
-  saveMarks(); paintMark(qk); paintProgress();
+  if (m) { MARKS[qk] = m; const t = ymd(); STUDY.log[t] = (STUDY.log[t] || 0) + 1; STUDY.days[qk] = t; schedule(qk, m); }
+  else { delete MARKS[qk]; delete STUDY.srs[qk]; }
+  saveStudy(); saveMarks(); paintMark(qk); paintProgress();
 }
 function paintMark(qk) {
   const a = document.querySelector(`article.q[data-qk="${qk}"]`); if (!a) return;
-  const m = MARKS[qk] || '';
+  const m = MARKS[qk] || '', s = srsOf(qk);
   if (m) a.dataset.mark = m; else delete a.dataset.mark;
+  if (s && s.due <= ymd()) a.dataset.due = '1'; else delete a.dataset.due;
   const lb = a.querySelector('.q-h .lb'); if (lb) lb.title = m ? MARK_LABEL[m] : '';
   a.querySelectorAll('.qact .rate').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+  const qd = a.querySelector('.qdue'); if (qd) { qd.textContent = s ? dueLabel(s.due) : ''; qd.classList.toggle('due', !!s && s.due <= ymd()); }
 }
 function paintProgress() {
   const all = [...document.querySelectorAll('article.q[data-qk]')], per = {};
-  const tot = { k: 0, s: 0, n: 0, all: all.length };
-  all.forEach(a => { const s = a.dataset.sec, m = MARKS[a.dataset.qk]; (per[s] = per[s] || { k: 0, s: 0, n: 0, all: 0 }).all++; if (m) { per[s][m]++; tot[m]++; } });
+  const tot = { k: 0, s: 0, n: 0, all: all.length, due: 0 };
+  all.forEach(a => { const s = a.dataset.sec, m = MARKS[a.dataset.qk]; (per[s] = per[s] || { k: 0, s: 0, n: 0, all: 0 }).all++; if (m) { per[s][m]++; tot[m]++; if (isDue(a.dataset.qk)) tot.due++; } });
   const bar = (root, c) => ['k', 's', 'n'].forEach(m => { root.querySelector('.' + m).style.width = (c.all ? c[m] / c.all * 100 : 0) + '%'; });
   document.querySelectorAll('[data-mp]').forEach(el => { const c = per[el.dataset.mp]; if (!c) return; bar(el, c); el.querySelector('.mpt').textContent = `${c.k}/${c.all}`; });
   $('#pgK').textContent = tot.k; $('#pgT').textContent = tot.all;
-  $('#pgS').textContent = [tot.s && `${tot.s} shaky`, tot.n && `${tot.n} not yet`].filter(Boolean).join(' · ');
+  $('#pgS').textContent = [tot.due && `${tot.due} due today`, tot.s && `${tot.s} shaky`, tot.n && `${tot.n} not yet`].filter(Boolean).join(' · ');
   bar($('.prog .pbar'), tot);
   paintToday(all, per, tot);
 }
@@ -2526,12 +2557,16 @@ function paintToday(all, per, tot) {
   else if (days > 0) { big.textContent = days; lab.textContent = days === 1 ? 'day to go. Interview is tomorrow' : 'days to go'; goal.innerHTML = left ? `Aim for <b>${Math.ceil(left / days)} questions a day</b> to get through the ${left} not yet Known.` : 'Everything is marked Known. Keep it fresh with a mock interview.'; }
   else if (days === 0) { big.textContent = '0'; lab.textContent = 'Interview is today. Good luck'; goal.innerHTML = 'Skim the <b>study sheet</b> (Print menu) and run one short mock to warm up.'; }
   else { big.textContent = '–'; lab.textContent = 'That date has passed. Set the next one'; goal.textContent = ''; }
-  // review list: Shaky first, then Not yet, oldest mark first
-  const weak = all.filter(a => /^[sn]$/.test(MARKS[a.dataset.qk] || '')).sort((a, b) => (MARKS[a.dataset.qk] === 's' ? 0 : 1) - (MARKS[b.dataset.qk] === 's' ? 0 : 1) || (STUDY.days[a.dataset.qk] || '').localeCompare(STUDY.days[b.dataset.qk] || ''));
-  $('#tdRevN').textContent = weak.length ? weak.length : '';
-  $('#tdRev').innerHTML = weak.length ? weak.slice(0, 5).map(a => { const m = MARKS[a.dataset.qk]; return `<li><a href="#${a.id}"><span class="dot ${m}" title="${MARK_LABEL[m]}"></span><span>${esc(a.querySelector('.q-h h3').textContent)}</span></a></li>`; }).join('')
-    : '<li class="td-empty">Nothing to review yet. Mark questions as you read, or run a mock interview to find your weak spots.</li>';
-  $('#tdActs').innerHTML = weak.length ? `<button type="button" class="btn pri sm" data-td="weak">Practise ${weak.length > 5 ? `all ${weak.length}` : 'these'}</button>` : `<button type="button" class="btn pri sm" data-td="mock">Start a mock interview</button>`;
+  // due for review: most overdue first, then Not yet before Shaky before Known
+  const weak = all.filter(a => /^[sn]$/.test(MARKS[a.dataset.qk] || ''));
+  const rank = { n: 0, s: 1, k: 2 };
+  const due = all.filter(a => isDue(a.dataset.qk)).sort((a, b) => srsOf(a.dataset.qk).due.localeCompare(srsOf(b.dataset.qk).due) || rank[MARKS[a.dataset.qk]] - rank[MARKS[b.dataset.qk]]);
+  $('#tdRevN').textContent = due.length ? due.length : '';
+  let empty = '<li class="td-empty">Nothing to review yet. Mark questions as you read, or run a mock interview to find your weak spots.</li>';
+  const later = all.map(a => srsOf(a.dataset.qk)).filter(s => s && s.due > ymd()).map(s => s.due).sort();
+  if (later.length) { const next = later[0], n = later.filter(d => d === next).length; empty = `<li class="td-empty">Nothing due today. Next review: <b>${n} question${n > 1 ? 's' : ''}</b> ${daysUntil(next) === 1 ? 'tomorrow' : `on ${parseYmd(next).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'short' })}`}.</li>`; }
+  $('#tdRev').innerHTML = due.length ? due.slice(0, 5).map(a => { const m = MARKS[a.dataset.qk], late = -daysUntil(srsOf(a.dataset.qk).due); return `<li><a href="#${a.id}"><span class="dot ${m}" title="${MARK_LABEL[m]}"></span><span>${esc(a.querySelector('.q-h h3').textContent)}</span>${late > 0 ? `<span class="td-late">${late}d late</span>` : ''}</a></li>`; }).join('') : empty;
+  $('#tdActs').innerHTML = due.length ? `<button type="button" class="btn pri sm" data-td="due">Review ${due.length > 5 ? `all ${due.length}` : due.length === 1 ? 'it' : 'these'}</button>` : `<button type="button" class="btn pri sm" data-td="mock">Start a mock interview</button>`;
   // today + streak
   let streak = 0; const d = new Date(today); if (!STUDY.log[ymd(d)]) d.setDate(d.getDate() - 1);
   while (STUDY.log[ymd(d)]) { streak++; d.setDate(d.getDate() - 1); }
@@ -2549,10 +2584,10 @@ function setupToday() {
   $('#today').addEventListener('click', e => {
     const b = e.target.closest('[data-td]'); if (!b) return;
     if (b.dataset.td === 'mock') { $('#mockBtn').click(); return; }
-    const f = $('#markFilter'); f.value = 'w'; f.dispatchEvent(new Event('change')); setPractice(true);
+    const f = $('#markFilter'); f.value = 'd'; f.dispatchEvent(new Event('change')); setPractice(true);
     const first = document.querySelector('article.q[data-qk]:not(.hide)');
     if (first) first.scrollIntoView({ behavior: RM ? 'auto' : 'smooth', block: 'start' });
-    toast('Showing only Shaky and Not yet questions. Change it in the side menu.');
+    toast('Showing only questions due for review. Mark each one again to schedule its next review.');
   });
 }
 
@@ -2612,7 +2647,7 @@ function mockAllOn() { return mockChosen().length === mockSections().length; }
 function drawWeighted(c, k) {
   const out = [];
   for (let i = 0; i < k && c.length; i++) {
-    const w = c.map(a => MARKS[a.dataset.qk] === 'k' ? 1 : 3); // not-yet-known questions come up 3x as often
+    const w = c.map(a => isDue(a.dataset.qk) ? 5 : MARKS[a.dataset.qk] === 'k' ? 1 : 3); // due questions first, then anything not yet Known
     let r = Math.random() * w.reduce((x, y) => x + y, 0), j = 0;
     while (j < c.length - 1 && (r -= w[j]) > 0) j++;
     out.push(c.splice(j, 1)[0]);
@@ -2761,7 +2796,7 @@ function render() {
         <div class="q-h">${it.label ? `<span class="lb">${it.label.replace('.', '')}</span>` : ''}<h3 data-ek="${id}-t">${it.title}</h3></div>
         ${(() => { const mm = memoryMap(`${sec.num}-${idx}`, id); return `<div class="qgrid${mm ? ' has-mm' : ''}">${qk ? QHIDE : ''}<div class="qbody">${blocks(it.body, id + '-')}</div>${mm}</div>`; })()}
         ${NOTES[key] ? `<div class="note"><b>${NOTE_TITLE}</b>${NOTES[key]}</div>` : ''}
-        ${qk ? `<div class="qact" role="group" aria-label="How well do you know this?"><span class="qact-l">How well do you know this?</span>${RATE_BTNS}</div>` : ''}
+        ${qk ? `<div class="qact" role="group" aria-label="How well do you know this?"><span class="qact-l">How well do you know this?</span>${RATE_BTNS}<span class="qdue" aria-live="polite"></span></div>` : ''}
         ${anims.map(a => `<div class="anim-slot" data-anim="${a}"></div>`).join('')}
       </article>`;
     }).join('');
@@ -2907,7 +2942,7 @@ function setupNav() {
   const apply = () => {
     const q = $('#search').value.trim().toLowerCase(), only = $('#onlyAnim').checked, mf = $('#markFilter').value;
     let shown = 0;
-    const markOk = a => !mf || (a.dataset.qk && (mf === 'u' ? !a.dataset.mark : mf === 'w' ? /^[sn]$/.test(a.dataset.mark || '') : a.dataset.mark === mf));
+    const markOk = a => !mf || (a.dataset.qk && (mf === 'u' ? !a.dataset.mark : mf === 'd' ? a.dataset.due === '1' : mf === 'w' ? /^[sn]$/.test(a.dataset.mark || '') : a.dataset.mark === mf));
     document.querySelectorAll('article.q').forEach(a => { const ok = (!only || a.dataset.hasAnim === '1') && markOk(a) && (!q || a.textContent.toLowerCase().includes(q)); a.classList.toggle('hide', !ok); if (ok) shown++; });
     secs.forEach(s => { const any = s.querySelector('article.q:not(.hide)'); const filtering = q || only || mf; s.classList.toggle('hide', !!filtering && !any); s.querySelectorAll('.intro,.lede').forEach(x => x.classList.toggle('hide', !!filtering)); });
     $('#noRes').classList.toggle('hide', shown > 0);
@@ -2938,7 +2973,10 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#practiceBtn').addEventListener('click', () => setPractice(!document.body.classList.contains('practice')));
   document.addEventListener('click', e => {
     const r = e.target.closest('.qact .rate');
-    if (r) { const qk = r.closest('article.q').dataset.qk; setMark(qk, MARKS[qk] === r.dataset.m ? '' : r.dataset.m); return; }
+    if (r) { // clicking the current mark clears it, except when the question is due: then it confirms and reschedules
+      const qk = r.closest('article.q').dataset.qk, same = MARKS[qk] === r.dataset.m;
+      setMark(qk, same && !isDue(qk) ? '' : r.dataset.m); return;
+    }
     const v = e.target.closest('.qhide .rv');
     if (v) { const a = v.closest('article.q'); a.classList.add('revealed'); a.querySelector('.qact .rate')?.focus({ preventScroll: true }); }
   });
